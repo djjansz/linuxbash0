@@ -1034,9 +1034,17 @@ sed '2,/^$/ d' sample1>sample2
 # delete all lines except for ones that contain the phrase "two"
 sed '/two/ !d' sample1>sample2
 cat sample2
-# Scheduling with crontab
-# shell scripts (/usr/lib/sa/sa1 and /usr/lib/sa/sa2) are structured to be run by the cron command and provide daily statistics and reports.
-# sample stanzas are included (but commented out) in the /var/spool/cron/crontabs/adm crontab fil
+# variable substitution - print the tail of the cwd (only the current folder)
+tail=${PWD##*/}
+echo $tail
+# Arithmetic Expressions in Bash
+typeset -i i=8#120
+echo $i
+i=50
+echo $i
+(( i = 16#a5 + 16#120 ))
+echo $i
+################################################################################################################
 # AIX Specific Commands
 #     		From the Unix Rosetta Stone at http://bhami.com/rosetta.html
 # AIX Version 7.1 Differences Guide http://www.redbooks.ibm.com/redbooks/pdfs/sg247910.pdf
@@ -1135,7 +1143,143 @@ topas -i5 -n0 -p0 -w0 -f0
 topas_nmon
 # interactive commands - system management interface tool
 smit
+############################################################################################################
+# Linux System Status and Utilities to Manage Processes
+ps #report a snapshot of the current processes
+ps -aux | sort -r -k 3 #sort processes by most to least cpu usage
+nohup #run a command immune to hang-ups, with output to a non-tty
+tty #print the file name of the terminal connected to standard output
+stty #changes terminal settings
+fg #send a job to the foreground
+bg #send a job to the background
+kill #send a signal to a process
+kill -9 PID #forcefull SIGKILL 
+kill -l #list all of the signals you can send with kill
+jobs #view running or stopped jobs associated with your terminal
+top #display Linux tasks
+ln #make links between files
+df #report file system disk space usage
+du #estimate file space usage
+free #display amount of free and used memory in the system
+pstree #show parent-child process relationships
+uptime #display the status of the system, how long the system has been up
+sleep #deliberately slow down or pause command line
+crontab #schedule a periodic process
+at #schedule a process for just one execution
 #############################################################################################################
+#!/bin/bash
+# Program Name: case_menu.bash
+# Description: Presents the user with a menu to do some tasks
+# Usage: bash case_menu.bash
+leave=no
+while [ $leave = no ]; do
+  sleep 7; clear; echo
+  echo "$LOGNAME's menu"; echo
+  echo "a- Display today's date and time."
+  echo "b- Display current working directory."
+  echo "c- Display who is logged on and the contents of /home."
+  echo "d- Display disk usage." 
+  echo "e- Display environment variables."
+  echo "l- Display files sorted by most recent date modified"
+  echo "p- Display processes sorted by CPU % usage"
+  echo "t- Display the process tree"
+  echo "x- Exit."
+  echo "z- Check for Zombie (Z) processes."
+  echo -n "Please enter your selection $LOGNAME: "
+  read selection; echo
+  case $selection in
+    a|A)
+            echo -n "The date and time is: "; date;;
+    b|B)
+      	    echo -n "Your current working directory is: "
+      	    pwd ;;
+    c|C) 
+	    echo -n "Who is logged on: "
+	    who;
+	    echo -n "The home directory has the following folder: "
+	    cd /home;
+	    ls;;
+    d|D) 
+	    echo -n "Disk usage for $PWD:"
+	    echo
+	    du;
+	    echo
+	    echo "File system usage: "
+	    echo;
+	    df -k;;
+    e|E)
+            echo -n "Environment variables: "
+	    env;;
+    l|L) 
+	    echo -n "Files sorted by most recent date modified:";
+	    ls -alt;;
+    p|P) 
+	    echo -n "Processes sorted by most strenuous on the CPU: ";
+	    ps -aux | sort -r -k 3 | less;;
+    t|T)
+	    echo -n "The process tree: ";
+	    pstree;;
+    x|X)
+      leave=yes;;
+    z|Z)
+	    echo "The type of processes: "
+	    ps -o pid,s,comm;;
+    *)
+    echo "Your choice was not understood. Try again!"
+  esac
+done
+###########################################################################################################
+#!/bin/bash
+# Program Name: chmod.bash
+# Description: changes all files in the cwd to rwxrwxrwx
+# Usage: bash chmod.bash
+IFS=$'\n'
+for file in $(find $PWD); do
+        chmod 777 "$file"
+done   
+###########################################################################################################
+#!/bin/bash
+# Program Name: grep3.bash
+# Description: Search for a phrase in a directory and it's subdirectories
+# Usage: bash grep3.bash /searchPath "pattern" /outputFile
+dir=$1
+pat=$2
+outFile=$3
+cnt=0
+getlist()
+{
+	IFS=$'\n'
+	for file in $(find $dir); do
+		if [ -f "$file" ]
+		then
+			echo "$file  IS A FILE"
+			if [ -r "$file" ]
+			then 
+				grep -in $pat "$file"
+				if [ $? -eq 0 ]
+				then
+					let cnt++
+					echo 
+					echo "$cnt: $file CONTAINS THE PATTERN $pat" >> $outFile
+				fi
+			fi
+		elif [ -d "$file" ]
+		then
+			echo "$file IS A DIRECTORY"
+		elif [ -e "$file" ] 
+		then
+			echo "$file EXISTS"
+		else
+			echo "$file HAS UNKNOWN TYPE"
+		fi
+	done
+}
+getlist
+echo
+echo "Done sending the file type to stdout and creating the output file $outFile that contains the list of files with the pattern $pat"
+
+
+##########################################################################################################
 #!/bin/bash
 #Description: count files in a directory
 dir=$1
@@ -1674,7 +1818,7 @@ echo
 # Hitting 'q' terminates the script.
 # In a given run of the script, there will be no duplicate numbers.
 # When the script terminates, it prints a log of the numbers generated.
-############################################################################################################
+# ############################################################################################################
 MIN=1       # Lowest allowable bingo number.
 MAX=75      # Highest allowable bingo number.
 COLS=15     # Numbers in each column (B I N G O).
@@ -1845,3 +1989,121 @@ wget -i ${stock_symbol}${file_suffix} "${URL}${stock_symbol}"
 # -----------------------------------------------------------
 exit $?
 #############################################################################################################
+# ~/.bashrc: executed by bash(1) for non-login shells.
+# see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
+# for examples
+
+# If not running interactively, don't do anything
+case $- in
+    *i*) ;;
+      *) return;;
+esac
+
+# don't put duplicate lines or lines starting with space in the history.
+# See bash(1) for more options
+HISTCONTROL=ignoreboth
+
+# append to the history file, don't overwrite it
+shopt -s histappend
+
+# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
+HISTSIZE=1000
+HISTFILESIZE=2000
+
+# check the window size after each command and, if necessary,
+# update the values of LINES and COLUMNS.
+shopt -s checkwinsize
+
+# If set, the pattern "**" used in a pathname expansion context will
+# match all files and zero or more directories and subdirectories.
+#shopt -s globstar
+
+# make less more friendly for non-text input files, see lesspipe(1)
+[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
+
+# set variable identifying the chroot you work in (used in the prompt below)
+if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
+    debian_chroot=$(cat /etc/debian_chroot)
+fi
+
+# set a fancy prompt (non-color, unless we know we "want" color)
+case "$TERM" in
+    xterm-color) color_prompt=yes;;
+esac
+
+# uncomment for a colored prompt, if the terminal has the capability; turned
+# off by default to not distract the user: the focus in a terminal window
+# should be on the output of commands, not on the prompt
+#force_color_prompt=yes
+
+if [ -n "$force_color_prompt" ]; then
+    if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
+        # We have color support; assume it's compliant with Ecma-48
+        # (ISO/IEC-6429). (Lack of such support is extremely rare, and such
+        # a case would tend to support setf rather than setaf.)
+        color_prompt=yes
+    else
+        color_prompt=
+    fi
+fi
+
+if [ "$color_prompt" = yes ]; then
+    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+else
+    PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
+fi
+unset color_prompt force_color_prompt
+
+# If this is an xterm set the title to user@host:dir
+case "$TERM" in
+xterm*|rxvt*)
+    PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
+    ;;
+*)
+    ;;
+esac
+
+# enable color support of ls and also add handy aliases
+if [ -x /usr/bin/dircolors ]; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+    alias ls='ls --color=auto'
+    #alias dir='dir --color=auto'
+    #alias vdir='vdir --color=auto'
+
+    alias grep='grep --color=auto'
+    alias fgrep='fgrep --color=auto'
+    alias egrep='egrep --color=auto'
+fi
+
+# some more ls aliases
+alias ll='ls -alF'
+alias la='ls -A'
+alias l='ls -CF'
+
+# Add an "alert" alias for long running commands.  Use like so:
+#   sleep 10; alert
+alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+
+# Alias definitions.
+# You may want to put all your additions into a separate file like
+# ~/.bash_aliases, instead of adding them here directly.
+# See /usr/share/doc/bash-doc/examples in the bash-doc package.
+
+if [ -f ~/.bash_aliases ]; then
+    . ~/.bash_aliases
+fi
+
+# enable programmable completion features (you don't need to enable
+# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
+# sources /etc/bash.bashrc).
+if ! shopt -oq posix; then
+  if [ -f /usr/share/bash-completion/bash_completion ]; then
+    . /usr/share/bash-completion/bash_completion
+  elif [ -f /etc/bash_completion ]; then
+    . /etc/bash_completion
+  fi
+fi  
+
+PS1="\$PWD (\w) \$ >"
+alias open='kde-open'
+
